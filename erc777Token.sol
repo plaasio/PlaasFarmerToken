@@ -1,6 +1,6 @@
 pragma solidity 0.5.3;
 
--------------------------------------------------------------------
+/*-------------------------------------------------------------------
  Contract designed with ❤ by EtherAuthority ( https://EtherAuthority.io )
 -------------------------------------------------------------------
 */ 
@@ -79,11 +79,38 @@ contract owned {
 }
  
 
-    
 
 //****************************************************************************//
-//---------------------        Helper Contracts          ---------------------//
+//------------     HELPER CONTRACT INTERFACE STARTS HERE       ---------------//
 //****************************************************************************//
+
+interface TokensRecipientInterface {
+    function tokensReceived(
+        address operator,
+        address from,
+        address to,
+        uint256 amount,
+        bytes calldata data,
+        bytes calldata operatorData
+    ) external;
+}
+
+interface TokensSenderInterface {
+    function tokensToSend(
+        address operator,
+        address from,
+        address to,
+        uint amount,
+        bytes calldata data,
+        bytes calldata operatorData
+    ) external;
+}
+
+
+//****************************************************************************//
+//------------   HELPER CONTRACT ERC 1820 CODE STARTS HERE     ---------------//
+//****************************************************************************//
+
 
 contract ERC1820Registry {
     function setInterfaceImplementer(address _addr, bytes32 _interfaceHash, address _implementer) external;
@@ -113,118 +140,6 @@ contract ERC1820Client {
 }
 
 
-contract ERC1820ImplementerInterface {
-    bytes32 constant ERC1820_ACCEPT_MAGIC = keccak256(abi.encodePacked("ERC1820_ACCEPT_MAGIC"));
-
-    /// @notice Indicates whether the contract implements the interface `interfaceHash` for the address `addr`.
-    /// @param interfaceHash keccak256 hash of the name of the interface
-    /// @param addr Address for which the contract will implement the interface
-    /// @return ERC1820_ACCEPT_MAGIC only if the contract implements `ìnterfaceHash` for the address `addr`.
-    function canImplementInterfaceForAddress(bytes32 interfaceHash, address addr) external view returns(bytes32);
-}
-
-
-contract TokensRecipient is ERC1820Client, ERC1820ImplementerInterface, Owned {
-
-    bool private allowTokensReceived;
-
-    mapping(address => address) public token;
-    mapping(address => address) public operator;
-    mapping(address => address) public from;
-    mapping(address => address) public to;
-    mapping(address => uint256) public amount;
-    mapping(address => bytes) public data;
-    mapping(address => bytes) public operatorData;
-    mapping(address => uint256) public balanceOf;
-
-    constructor(bool _setInterface) public {
-        if (_setInterface) { setInterfaceImplementation("ERC777TokensRecipient", address(this)); }
-        allowTokensReceived = true;
-    }
-
-    function tokensReceived(
-        address _operator,
-        address _from,
-        address _to,
-        uint256 _amount,
-        bytes calldata _data,
-        bytes calldata _operatorData
-    )
-        external
-    {
-        require(allowTokensReceived, "Receive not allowed");
-        token[_to] = msg.sender;
-        operator[_to] = _operator;
-        from[_to] = _from;
-        to[_to] = _to;
-        amount[_to] = _amount;
-        data[_to] = _data;
-        operatorData[_to] = _operatorData;
-        balanceOf[_from] = ERC777Token(msg.sender).balanceOf(_from);
-        balanceOf[_to] = ERC777Token(msg.sender).balanceOf(_to);
-    }
-
-    function acceptTokens() public onlyOwner { allowTokensReceived = true; }
-
-    function rejectTokens() public onlyOwner { allowTokensReceived = false; }
-
-    function canImplementInterfaceForAddress(bytes32 _interfaceHash, address _addr) external view returns(bytes32) {
-        return ERC1820_ACCEPT_MAGIC;
-    }
-}
-
-
-contract TokensSender is ERC1820Client, ERC1820ImplementerInterface, Owned {
-
-    bool private allowTokensToSend;
-
-    mapping(address => address) public token;
-    mapping(address => address) public operator;
-    mapping(address => address) public from;
-    mapping(address => address) public to;
-    mapping(address => uint256) public amount;
-    mapping(address => bytes) public data;
-    mapping(address => bytes) public operatorData;
-    mapping(address => uint256) public balanceOf;
-
-    constructor(bool _setInterface) public {
-        if (_setInterface) { setInterfaceImplementation("ERC777TokensSender", address(this)); }
-        allowTokensToSend = true;
-    }
-
-    function tokensToSend(
-        address _operator,
-        address _from,
-        address _to,
-        uint _amount,
-        bytes calldata _data,
-        bytes calldata _operatorData
-    )
-        external
-    {
-        require(allowTokensToSend, "Send not allowed");
-        token[_to] = msg.sender;
-        operator[_to] = _operator;
-        from[_to] = _from;
-        to[_to] = _to;
-        amount[_to] = _amount;
-        data[_to] = _data;
-        operatorData[_to] = _operatorData;
-        balanceOf[_from] = ERC777Token(msg.sender).balanceOf(_from);
-        balanceOf[_to] = ERC777Token(msg.sender).balanceOf(_to);
-    }
-
-    function acceptTokensToSend() public onlyOwner { allowTokensToSend = true; }
-
-    function rejectTokensToSend() public onlyOwner { allowTokensToSend = false; }
-
-    function canImplementInterfaceForAddress(bytes32 _interfaceHash, address _addr) external view  returns(bytes32) {
-        return ERC1820_ACCEPT_MAGIC;
-    }
-
-}
-
-
 //****************************************************************************//
 //-------------------    MAIN CONTRACT CODE STARTS HERE     ------------------//
 //****************************************************************************//
@@ -245,6 +160,35 @@ contract MyERC777 is ERC1820Client {
     mapping(address => bool) internal mIsDefaultOperator;
     mapping(address => mapping(address => bool)) internal mRevokedDefaultOperator;
     mapping(address => mapping(address => bool)) internal mAuthorizedOperators;
+
+    /* Events */
+    event Sent(
+        address indexed operator,
+        address indexed from,
+        address indexed to,
+        uint256 amount,
+        bytes data,
+        bytes operatorData
+    );
+    event Minted(
+        address indexed operator,
+        address indexed to,
+        uint256 amount,
+        bytes data,
+        bytes operatorData
+    );
+    event Burned(
+        address indexed operator,
+        address indexed from,
+        uint256 amount,
+        bytes data,
+        bytes operatorData
+    );
+    event AuthorizedOperator(
+        address indexed operator,
+        address indexed holder
+    );
+    event RevokedOperator(address indexed operator, address indexed holder);
 
     /* -- Constructor -- */
     //
@@ -267,7 +211,6 @@ contract MyERC777 is ERC1820Client {
         //setInterfaceImplementation("ERC777Token", address(this));
     }
 
-    /* -- ERC777 Interface Implementation -- */
     //
     /// @return the name of the token
     function name() public view returns (string memory) { return mName; }
@@ -392,7 +335,7 @@ contract MyERC777 is ERC1820Client {
     /// @param _data Data generated by the user to be passed to the recipient
     /// @param _operatorData Data generated by the operator to be passed to the recipient
     /// @param _preventLocking `true` if you want this function to throw when tokens are sent to a contract not
-    ///  implementing `ERC777tokensRecipient`.
+    ///  implementing `tokensRecipientInterface`.
     ///  ERC777 native Send functions MUST set this parameter to `true`, and backwards compatible ERC20 transfer
     ///  functions SHOULD set this parameter to `false`.
     function doSend(
@@ -447,7 +390,7 @@ contract MyERC777 is ERC1820Client {
         emit Burned(_operator, _tokenHolder, _amount, _data, _operatorData);
     }
 
-    /// @notice Helper function that checks for ERC777TokensRecipient on the recipient and calls it.
+    /// @notice Helper function that checks for TokensRecipientInterface on the recipient and calls it.
     ///  May throw according to `_preventLocking`
     /// @param _operator The address performing the send or mint
     /// @param _from The address holding the tokens being sent
@@ -456,7 +399,7 @@ contract MyERC777 is ERC1820Client {
     /// @param _data Data generated by the user to be passed to the recipient
     /// @param _operatorData Data generated by the operator to be passed to the recipient
     /// @param _preventLocking `true` if you want this function to throw when tokens are sent to a contract not
-    ///  implementing `ERC777TokensRecipient`.
+    ///  implementing `TokensRecipientInterface`.
     ///  ERC777 native Send functions MUST set this parameter to `true`, and backwards compatible ERC20 transfer
     ///  functions SHOULD set this parameter to `false`.
     function callRecipient(
@@ -470,23 +413,23 @@ contract MyERC777 is ERC1820Client {
     )
         internal
     {
-        address recipientImplementation = interfaceAddr(_to, "ERC777TokensRecipient");
+        address recipientImplementation = interfaceAddr(_to, "TokensRecipientInterface");
         if (recipientImplementation != address(0)) {
-            ERC777TokensRecipient(recipientImplementation).tokensReceived(
+                TokensRecipientInterface(recipientImplementation).tokensReceived(
                 _operator, _from, _to, _amount, _data, _operatorData);
         } else if (_preventLocking) {
-            require(isRegularAddress(_to), "Cannot send to contract without ERC777TokensRecipient");
+            require(isRegularAddress(_to), "Cannot send to contract without TokensRecipientInterface");
         }
     }
 
-    /// @notice Helper function that checks for ERC777TokensSender on the sender and calls it.
+    /// @notice Helper function that checks for TokensSenderInterface on the sender and calls it.
     ///  May throw according to `_preventLocking`
     /// @param _from The address holding the tokens being sent
     /// @param _to The address of the recipient
     /// @param _amount The amount of tokens to be sent
     /// @param _data Data generated by the user to be passed to the recipient
     /// @param _operatorData Data generated by the operator to be passed to the recipient
-    ///  implementing `ERC777TokensSender`.
+    ///  implementing `TokensSenderInterface`.
     ///  ERC777 native Send functions MUST set this parameter to `true`, and backwards compatible ERC20 transfer
     ///  functions SHOULD set this parameter to `false`.
     function callSender(
@@ -499,9 +442,128 @@ contract MyERC777 is ERC1820Client {
     )
         internal
     {
-        address senderImplementation = interfaceAddr(_from, "ERC777TokensSender");
+        address senderImplementation = interfaceAddr(_from, "TokensSenderInterface");
         if (senderImplementation == address(0)) { return; }
-        ERC777TokensSender(senderImplementation).tokensToSend(
+        TokensSenderInterface(senderImplementation).tokensToSend(
             _operator, _from, _to, _amount, _data, _operatorData);
     }
+}    
+
+//****************************************************************************//
+//---------------------        Helper Contracts          ---------------------//
+//****************************************************************************//
+
+
+
+contract ERC1820ImplementerInterface {
+    bytes32 constant ERC1820_ACCEPT_MAGIC = keccak256(abi.encodePacked("ERC1820_ACCEPT_MAGIC"));
+
+    /// @notice Indicates whether the contract implements the interface `interfaceHash` for the address `addr`.
+    /// @param interfaceHash keccak256 hash of the name of the interface
+    /// @param addr Address for which the contract will implement the interface
+    /// @return ERC1820_ACCEPT_MAGIC only if the contract implements `ìnterfaceHash` for the address `addr`.
+    function canImplementInterfaceForAddress(bytes32 interfaceHash, address addr) external view returns(bytes32);
 }
+
+
+contract TokensRecipient is ERC1820Client, ERC1820ImplementerInterface, TokensRecipientInterface, owned {
+
+    bool private allowTokensReceived;
+
+    mapping(address => address) public token;
+    mapping(address => address) public operator;
+    mapping(address => address) public from;
+    mapping(address => address) public to;
+    mapping(address => uint256) public amount;
+    mapping(address => bytes) public data;
+    mapping(address => bytes) public operatorData;
+    mapping(address => uint256) public balanceOf;
+
+    constructor(bool _setInterface) public {
+        if (_setInterface) { setInterfaceImplementation("TokensRecipientInterface", address(this)); }
+        allowTokensReceived = true;
+    }
+
+    function tokensReceived(
+        address _operator,
+        address _from,
+        address _to,
+        uint256 _amount,
+        bytes calldata _data,
+        bytes calldata _operatorData
+    )
+        external
+    {
+        require(allowTokensReceived, "Receive not allowed");
+        token[_to] = msg.sender;
+        operator[_to] = _operator;
+        from[_to] = _from;
+        to[_to] = _to;
+        amount[_to] = _amount;
+        data[_to] = _data;
+        operatorData[_to] = _operatorData;
+        balanceOf[_from] = MyERC777(msg.sender).balanceOf(_from);
+        balanceOf[_to] = MyERC777(msg.sender).balanceOf(_to);
+    }
+
+    function acceptTokens() public onlyOwner { allowTokensReceived = true; }
+
+    function rejectTokens() public onlyOwner { allowTokensReceived = false; }
+
+    function canImplementInterfaceForAddress(bytes32 _interfaceHash, address _addr) external view returns(bytes32) {
+        return ERC1820_ACCEPT_MAGIC;
+    }
+}
+
+
+contract TokensSender is ERC1820Client, ERC1820ImplementerInterface, TokensSenderInterface, owned {
+
+    bool private allowTokensToSend;
+
+    mapping(address => address) public token;
+    mapping(address => address) public operator;
+    mapping(address => address) public from;
+    mapping(address => address) public to;
+    mapping(address => uint256) public amount;
+    mapping(address => bytes) public data;
+    mapping(address => bytes) public operatorData;
+    mapping(address => uint256) public balanceOf;
+
+    constructor(bool _setInterface) public {
+        if (_setInterface) { setInterfaceImplementation("ERC777TokensSender", address(this)); }
+        allowTokensToSend = true;
+    }
+
+    function tokensToSend(
+        address _operator,
+        address _from,
+        address _to,
+        uint _amount,
+        bytes calldata _data,
+        bytes calldata _operatorData
+    )
+        external
+    {
+        require(allowTokensToSend, "Send not allowed");
+        token[_to] = msg.sender;
+        operator[_to] = _operator;
+        from[_to] = _from;
+        to[_to] = _to;
+        amount[_to] = _amount;
+        data[_to] = _data;
+        operatorData[_to] = _operatorData;
+        balanceOf[_from] = MyERC777(msg.sender).balanceOf(_from);
+        balanceOf[_to] = MyERC777(msg.sender).balanceOf(_to);
+    }
+
+    function acceptTokensToSend() public onlyOwner { allowTokensToSend = true; }
+
+    function rejectTokensToSend() public onlyOwner { allowTokensToSend = false; }
+
+    function canImplementInterfaceForAddress(bytes32 _interfaceHash, address _addr) external view  returns(bytes32) {
+        return ERC1820_ACCEPT_MAGIC;
+    }
+
+}
+
+
