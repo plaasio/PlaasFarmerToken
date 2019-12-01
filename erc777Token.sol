@@ -362,7 +362,7 @@ contract PLAAS_FARMERS_TOKEN is Context {
     
     
 
-//    IERC1820Registry constant private ERC1820_REGISTRY = IERC1820Registry(0x24e9Ae61DEB7F693AB4994340a11CfBF4Ed5F91b);
+    IERC1820Registry constant private ERC1820_REGISTRY = IERC1820Registry(0x24e9Ae61DEB7F693AB4994340a11CfBF4Ed5F91b);
 
     mapping(address => uint256) private _balances;
 
@@ -409,8 +409,8 @@ contract PLAAS_FARMERS_TOKEN is Context {
         
 
         // register interfaces
-        //ERC1820_REGISTRY.setInterfaceImplementer(address(this), keccak256("ERC777Token"), address(this));
-        //ERC1820_REGISTRY.setInterfaceImplementer(address(this), keccak256("ERC20Token"), address(this));
+        ERC1820_REGISTRY.setInterfaceImplementer(address(this), keccak256("ERC777Token"), address(this));
+        ERC1820_REGISTRY.setInterfaceImplementer(address(this), keccak256("ERC20Token"), address(this));
     }
 
     /**
