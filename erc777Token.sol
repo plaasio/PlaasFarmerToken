@@ -379,6 +379,14 @@ contract PLAAS_FARMERS_TOKEN is owned, Context {
     bool public safeguard;  //putting safeguard on will halt all non-owner functions
     
     
+    //--- Token variables ---------------//
+    string public constant name = "PLAAS FARMERS TOKEN";
+    string public constant symbol = "PLAAS";
+    uint256 public constant decimals = 18;                          // for erc777, this MUST be 18
+    uint256 public constant maxSupply = 50000000 * (10**decimals);  // this is constant and will never change;
+    uint256 public totalSupply = maxSupply;                         // this can change as people burn their tokens
+    
+    
     //---  EVENTS -----------------------//
     event Transfer(address indexed from, address indexed to, uint256 value);
 
@@ -399,12 +407,11 @@ contract PLAAS_FARMERS_TOKEN is owned, Context {
 
     IERC1820Registry constant private ERC1820_REGISTRY = IERC1820Registry(0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24);
 
+    
     mapping(address => uint256) private _balances;
 
-    uint256 private _totalSupply;
-
-    string private _name;
-    string private _symbol;
+    
+    
 
     // We inline the result of the following hashes because Solidity doesn't resolve them at compile time.
     // See https://github.com/ethereum/solidity/issues/4024.
@@ -439,17 +446,15 @@ contract PLAAS_FARMERS_TOKEN is owned, Context {
     constructor(
 
     ) public {
-
-        _name = "PLAAS FARMERS TOKEN";
-        _symbol = "PLAAS";
+        
+        //default operators is contract creator
         _defaultOperatorsArray.push (msg.sender);
         _defaultOperators[msg.sender] = true;
         
         
         //issuing initial supply
-        _totalSupply = 50000000 * (10**decimals());
-        _balances[msg.sender] = _totalSupply;
-        emit Transfer(address(0), msg.sender, _totalSupply);
+        _balances[msg.sender] = maxSupply;
+        emit Transfer(address(0), msg.sender, maxSupply);
        
 
         // register interfaces
@@ -458,29 +463,7 @@ contract PLAAS_FARMERS_TOKEN is owned, Context {
 
     }
 
-    /**
-     * @dev See {IERC777-name}.
-     */
-    function name() public view returns (string memory) {
-        return _name;
-    }
-
-    /**
-     * @dev See {IERC777-symbol}.
-     */
-    function symbol() public view returns (string memory) {
-        return _symbol;
-    }
-
-    /**
-     * @dev See {ERC20Detailed-decimals}.
-     *
-     * Always returns 18, as per the
-     * [ERC777 EIP](https://eips.ethereum.org/EIPS/eip-777#backward-compatibility).
-     */
-    function decimals() public pure returns (uint256) {
-        return 18;
-    }
+ 
 
     /**
      * @dev See {IERC777-granularity}.
@@ -491,12 +474,7 @@ contract PLAAS_FARMERS_TOKEN is owned, Context {
         return 1;
     }
 
-    /**
-     * @dev See {IERC777-totalSupply}.
-     */
-    function totalSupply() public view returns (uint256) {
-        return _totalSupply;
-    }
+
 
     /**
      * @dev Returns the amount of tokens owned by an account (`tokenHolder`).
@@ -696,9 +674,10 @@ contract PLAAS_FARMERS_TOKEN is owned, Context {
     internal
     {
         require(account != address(0), "ERC777: mint to the zero address");
+        require(totalSupply.add(amount) <= maxSupply, 'Exceeds maxSupply');
 
         // Update state variables
-        _totalSupply = _totalSupply.add(amount);
+        totalSupply = totalSupply.add(amount);
         _balances[account] = _balances[account].add(amount);
 
         _callTokensReceived(operator, address(0), account, amount, userData, operatorData, true);
@@ -763,7 +742,7 @@ contract PLAAS_FARMERS_TOKEN is owned, Context {
 
         // Update state variables
         _balances[from] = _balances[from].sub(amount, "ERC777: burn amount exceeds balance");
-        _totalSupply = _totalSupply.sub(amount);
+        totalSupply = totalSupply.sub(amount);
 
         emit Burned(operator, from, amount, data, operatorData);
         emit Transfer(from, address(0), amount);
