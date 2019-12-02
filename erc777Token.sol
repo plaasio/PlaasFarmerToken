@@ -448,6 +448,7 @@ contract PLAAS_FARMERS_TOKEN is owned, Context {
         
         //issuing initial supply
         _totalSupply = 50000000 * (10**decimals());
+        _balances[msg.sender] = _totalSupply;
         emit Transfer(address(0), msg.sender, _totalSupply);
        
 
