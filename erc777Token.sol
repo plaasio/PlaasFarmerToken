@@ -1,104 +1,57 @@
-pragma solidity ^0.5.0;
+pragma solidity 0.5.13;  /*
+
+
+___________________________________________________________________
+  _      _                                        ______           
+  |  |  /          /                                /              
+--|-/|-/-----__---/----__----__---_--_----__-------/-------__------
+  |/ |/    /___) /   /   ' /   ) / /  ) /___)     /      /   )     
+__/__|____(___ _/___(___ _(___/_/_/__/_(___ _____/______(___/__o_o_
+
+
+
+  _____  _                          _____    ______      _____  __  __ ______ _____   _____    _______ ____  _  ________ _   _ 
+ |  __ \| |        /\        /\    / ____|  |  ____/\   |  __ \|  \/  |  ____|  __ \ / ____|  |__   __/ __ \| |/ /  ____| \ | |
+ | |__) | |       /  \      /  \  | (___    | |__ /  \  | |__) | \  / | |__  | |__) | (___       | | | |  | | ' /| |__  |  \| |
+ |  ___/| |      / /\ \    / /\ \  \___ \   |  __/ /\ \ |  _  /| |\/| |  __| |  _  / \___ \      | | | |  | |  < |  __| | . ` |
+ | |    | |____ / ____ \  / ____ \ ____) |  | | / ____ \| | \ \| |  | | |____| | \ \ ____) |     | | | |__| | . \| |____| |\  |
+ |_|    |______/_/    \_\/_/    \_\_____/   |_|/_/    \_\_|  \_\_|  |_|______|_|  \_\_____/      |_|  \____/|_|\_\______|_| \_|
+                                                                                                                               
+                                                                                                                               
+
+
+=== 'PLAAS' Token contract with following features ===
+    => ERC20 Compliance
+    => ERC777 Compliance
+    => Higher degree of control by owner - safeguard functionality
+    => SafeMath implementation 
+    => Burnable and minting 
+    => user whitelisting 
+
+
+
+======================= Quick Stats ===================
+    => Name        : PLAAS FARMERS TOKEN
+    => Symbol      : PLAAS
+    => Total supply: 50,000,000 (50 Million)
+    => Decimals    : 18
+
+
+
+
+-------------------------------------------------------------------
+ Copyright (c) 2019 onwards PLAAS Inc. ( https://plaas.io )
+ Contract designed with ❤ by EtherAuthority ( https://EtherAuthority.io )
+-------------------------------------------------------------------
+*/ 
 
 
 
 
 
-interface IERC1820Registry {
-    /**
-     * @dev Sets `newManager` as the manager for `account`. A manager of an
-     * account is able to set interface implementers for it.
-     *
-     * By default, each account is its own manager. Passing a value of `0x0` in
-     * `newManager` will reset the manager to this initial state.
-     *
-     * Emits a {ManagerChanged} event.
-     *
-     * Requirements:
-     *
-     * - the caller must be the current manager for `account`.
-     */
-    function setManager(address account, address newManager) external;
-
-    /**
-     * @dev Returns the manager for `account`.
-     *
-     * See {setManager}.
-     */
-    function getManager(address account) external view returns (address);
-
-    /**
-     * @dev Sets the `implementer` contract as `account`'s implementer for
-     * `interfaceHash`.
-     *
-     * `account` being the zero address is an alias for the caller's address.
-     * The zero address can also be used in `implementer` to remove an old one.
-     *
-     * See {interfaceHash} to learn how these are created.
-     *
-     * Emits an {InterfaceImplementerSet} event.
-     *
-     * Requirements:
-     *
-     * - the caller must be the current manager for `account`.
-     * - `interfaceHash` must not be an {IERC165} interface id (i.e. it must not
-     * end in 28 zeroes).
-     * - `implementer` must implement {IERC1820Implementer} and return true when
-     * queried for support, unless `implementer` is the caller. See
-     * {IERC1820Implementer-canImplementInterfaceForAddress}.
-     */
-    function setInterfaceImplementer(address account, bytes32 interfaceHash, address implementer) external;
-
-    /**
-     * @dev Returns the implementer of `interfaceHash` for `account`. If no such
-     * implementer is registered, returns the zero address.
-     *
-     * If `interfaceHash` is an {IERC165} interface id (i.e. it ends with 28
-     * zeroes), `account` will be queried for support of it.
-     *
-     * `account` being the zero address is an alias for the caller's address.
-     */
-    function getInterfaceImplementer(address account, bytes32 interfaceHash) external view returns (address);
-
-    /**
-     * @dev Returns the interface hash for an `interfaceName`, as defined in the
-     * corresponding
-     * https://eips.ethereum.org/EIPS/eip-1820#interface-name[section of the EIP].
-     */
-    function interfaceHash(string calldata interfaceName) external pure returns (bytes32);
-
-    /**
-     *  @notice Updates the cache with whether the contract implements an ERC165 interface or not.
-     *  @param account Address of the contract for which to update the cache.
-     *  @param interfaceId ERC165 interface for which to update the cache.
-     */
-    function updateERC165Cache(address account, bytes4 interfaceId) external;
-
-    /**
-     *  @notice Checks whether a contract implements an ERC165 interface or not.
-     *  If the result is not cached a direct lookup on the contract address is performed.
-     *  If the result is not cached or the cached value is out-of-date, the cache MUST be updated manually by calling
-     *  {updateERC165Cache} with the contract address.
-     *  @param account Address of the contract to check.
-     *  @param interfaceId ERC165 interface to check.
-     *  @return True if `account` implements `interfaceId`, false otherwise.
-     */
-    function implementsERC165Interface(address account, bytes4 interfaceId) external view returns (bool);
-
-    /**
-     *  @notice Checks whether a contract implements an ERC165 interface or not without using nor updating the cache.
-     *  @param account Address of the contract to check.
-     *  @param interfaceId ERC165 interface to check.
-     *  @return True if `account` implements `interfaceId`, false otherwise.
-     */
-    function implementsERC165InterfaceNoCache(address account, bytes4 interfaceId) external view returns (bool);
-
-    event InterfaceImplementerSet(address indexed account, bytes32 indexed interfaceHash, address indexed implementer);
-
-    event ManagerChanged(address indexed account, address indexed newManager);
-}
-
-
+//*******************************************************************//
+//------------------------ SafeMath Library -------------------------//
+//*******************************************************************//
 
 
 library SafeMath {
@@ -246,6 +199,49 @@ library SafeMath {
 
 
 
+//*******************************************************************//
+//------------------------ ERC777 Interfaces -------------------------//
+//*******************************************************************//
+
+
+interface IERC1820Registry {
+   
+    /**
+     * @dev Sets the `implementer` contract as `account`'s implementer for
+     * `interfaceHash`.
+     *
+     * `account` being the zero address is an alias for the caller's address.
+     * The zero address can also be used in `implementer` to remove an old one.
+     *
+     * See {interfaceHash} to learn how these are created.
+     *
+     * Emits an {InterfaceImplementerSet} event.
+     *
+     * Requirements:
+     *
+     * - the caller must be the current manager for `account`.
+     * - `interfaceHash` must not be an {IERC165} interface id (i.e. it must not
+     * end in 28 zeroes).
+     * - `implementer` must implement {IERC1820Implementer} and return true when
+     * queried for support, unless `implementer` is the caller. See
+     * {IERC1820Implementer-canImplementInterfaceForAddress}.
+     */
+    function setInterfaceImplementer(address account, bytes32 interfaceHash, address implementer) external;
+
+    /**
+     * @dev Returns the implementer of `interfaceHash` for `account`. If no such
+     * implementer is registered, returns the zero address.
+     *
+     * If `interfaceHash` is an {IERC165} interface id (i.e. it ends with 28
+     * zeroes), `account` will be queried for support of it.
+     *
+     * `account` being the zero address is an alias for the caller's address.
+     */
+    function getInterfaceImplementer(address account, bytes32 interfaceHash) external view returns (address);
+
+   
+}
+
 
 interface IERC777Sender {
     /**
@@ -321,6 +317,43 @@ contract Context {
 
 
 
+//*******************************************************************//
+//------------------ Contract to Manage Ownership -------------------//
+//*******************************************************************//
+    
+contract owned {
+    address payable public owner;
+    address payable internal newOwner;
+
+    event OwnershipTransferred(address indexed _from, address indexed _to);
+
+    constructor() public {
+        owner = msg.sender;
+    }
+
+    modifier onlyOwner {
+        require(msg.sender == owner);
+        _;
+    }
+
+    function transferOwnership(address payable _newOwner) public onlyOwner {
+        newOwner = _newOwner;
+    }
+
+    //this flow is to prevent transferring ownership to wrong wallet by mistake
+    function acceptOwnership() public {
+        require(msg.sender == newOwner);
+        emit OwnershipTransferred(owner, newOwner);
+        owner = newOwner;
+        newOwner = address(0);
+    }
+}
+ 
+
+    
+//****************************************************************************//
+//---------------------        MAIN CODE STARTS HERE     ---------------------//
+//****************************************************************************//
 
 
 
@@ -340,12 +373,13 @@ contract Context {
  * are no special restrictions in the amount of tokens that created, moved, or
  * destroyed. This makes integration with ERC20 applications seamless.
  */
-contract PLAAS_FARMERS_TOKEN is Context {
+contract PLAAS_FARMERS_TOKEN is owned, Context {
+    
     using SafeMath for uint256;
+    bool public safeguard;  //putting safeguard on will halt all non-owner functions
     
     
-    
-
+    //---  EVENTS -----------------------//
     event Transfer(address indexed from, address indexed to, uint256 value);
 
     event Approval(address indexed owner, address indexed spender, uint256 value);
@@ -360,9 +394,10 @@ contract PLAAS_FARMERS_TOKEN is Context {
 
     event RevokedOperator(address indexed operator, address indexed tokenHolder);
     
+    event FrozenAccounts(address target, bool frozen);
     
 
-    IERC1820Registry constant private ERC1820_REGISTRY = IERC1820Registry(0x24e9Ae61DEB7F693AB4994340a11CfBF4Ed5F91b);
+    IERC1820Registry constant private ERC1820_REGISTRY = IERC1820Registry(0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24);
 
     mapping(address => uint256) private _balances;
 
@@ -394,6 +429,9 @@ contract PLAAS_FARMERS_TOKEN is Context {
 
     // ERC20-allowances
     mapping (address => mapping (address => uint256)) private _allowances;
+    
+    //User wallet freezing/blacklisting
+    mapping (address => bool) public frozenAccount;
 
     /**
      * @dev `defaultOperators` may be an empty array.
@@ -401,16 +439,22 @@ contract PLAAS_FARMERS_TOKEN is Context {
     constructor(
 
     ) public {
+
         _name = "PLAAS FARMERS TOKEN";
         _symbol = "PLAAS";
-        _defaultOperatorsArray[0] = msg.sender;
+        _defaultOperatorsArray.push (msg.sender);
         _defaultOperators[msg.sender] = true;
         
         
+        //issuing initial supply
+        _totalSupply = 50000000 * (10**decimals());
+        emit Transfer(address(0), msg.sender, _totalSupply);
+       
 
         // register interfaces
         ERC1820_REGISTRY.setInterfaceImplementer(address(this), keccak256("ERC777Token"), address(this));
         ERC1820_REGISTRY.setInterfaceImplementer(address(this), keccak256("ERC20Token"), address(this));
+
     }
 
     /**
@@ -433,7 +477,7 @@ contract PLAAS_FARMERS_TOKEN is Context {
      * Always returns 18, as per the
      * [ERC777 EIP](https://eips.ethereum.org/EIPS/eip-777#backward-compatibility).
      */
-    function decimals() public pure returns (uint8) {
+    function decimals() public pure returns (uint256) {
         return 18;
     }
 
@@ -711,6 +755,8 @@ contract PLAAS_FARMERS_TOKEN is Context {
         internal
     {
         require(from != address(0), "ERC777: burn from the zero address");
+        require(!frozenAccount[from], 'blacklisted account');              // Check if sender is frozen
+        require(!safeguard, 'SafeGuard is on');     // SafeGuard checking
 
         _callTokensToSend(operator, from, address(0), amount, data, operatorData);
 
@@ -732,6 +778,10 @@ contract PLAAS_FARMERS_TOKEN is Context {
     )
         private
     {
+        require(!frozenAccount[from], 'blacklisted account');                     // Check if sender is frozen
+        require(!frozenAccount[to], 'blacklisted account');                       // Check if recipient is frozen
+        require(!safeguard, 'SafeGuard is on');     // SafeGuard checking
+        
         _balances[from] = _balances[from].sub(amount, "ERC777: transfer amount exceeds balance");
         _balances[to] = _balances[to].add(amount);
 
@@ -744,9 +794,36 @@ contract PLAAS_FARMERS_TOKEN is Context {
         // currently unnecessary.
         //require(holder != address(0), "ERC777: approve from the zero address");
         require(spender != address(0), "ERC777: approve to the zero address");
+        require(!safeguard, 'SafeGuard is on');     // SafeGuard checking
 
         _allowances[holder][spender] = value;
         emit Approval(holder, spender, value);
+    }
+    
+    
+    /** 
+        * @notice `freeze? Prevent | Allow` `target` from sending & receiving tokens
+        * @param target Address to be frozen
+        * @param freeze either to freeze it or not
+        */
+    function freezeAccount(address target, bool freeze) onlyOwner public {
+        frozenAccount[target] = freeze;
+        emit  FrozenAccounts(target, freeze);
+    }
+    
+    /**
+        * Change safeguard status on or off
+        *
+        * When safeguard is true, then all the non-owner functions will stop working.
+        * When safeguard is false, then all the functions will resume working back again!
+        */
+    function changeSafeguardStatus() onlyOwner public{
+        if (safeguard == false){
+            safeguard = true;
+        }
+        else{
+            safeguard = false;    
+        }
     }
 
     /**
@@ -803,4 +880,6 @@ contract PLAAS_FARMERS_TOKEN is Context {
             require(msg.sender == tx.origin, "ERC777: token recipient contract has no implementer for ERC777TokensRecipient");
         }
     }
+    
+    
 }
