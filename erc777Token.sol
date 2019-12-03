@@ -336,12 +336,12 @@ contract owned {
         _;
     }
 
-    function transferOwnership(address payable _newOwner) public onlyOwner {
+    function transferOwnership(address payable _newOwner) external onlyOwner {
         newOwner = _newOwner;
     }
 
     //this flow is to prevent transferring ownership to wrong wallet by mistake
-    function acceptOwnership() public {
+    function acceptOwnership() external {
         require(msg.sender == newOwner);
         emit OwnershipTransferred(owner, newOwner);
         owner = newOwner;
@@ -470,7 +470,7 @@ contract PLAAS_FARMERS_TOKEN is owned, Context {
      *
      * This implementation always returns `1`.
      */
-    function granularity() public pure returns (uint256) {
+    function granularity() external pure returns (uint256) {
         return 1;
     }
 
@@ -479,7 +479,7 @@ contract PLAAS_FARMERS_TOKEN is owned, Context {
     /**
      * @dev Returns the amount of tokens owned by an account (`tokenHolder`).
      */
-    function balanceOf(address tokenHolder) public view returns (uint256) {
+    function balanceOf(address tokenHolder) external view returns (uint256) {
         return _balances[tokenHolder];
     }
 
@@ -500,7 +500,7 @@ contract PLAAS_FARMERS_TOKEN is owned, Context {
      *
      * Also emits a {Sent} event.
      */
-    function transfer(address recipient, uint256 amount) public returns (bool) {
+    function transfer(address recipient, uint256 amount) external returns (bool) {
         require(recipient != address(0), "ERC777: transfer to the zero address");
 
         address from = _msgSender();
@@ -538,7 +538,7 @@ contract PLAAS_FARMERS_TOKEN is owned, Context {
     /**
      * @dev See {IERC777-authorizeOperator}.
      */
-    function authorizeOperator(address operator) public {
+    function authorizeOperator(address operator) external {
         require(_msgSender() != operator, "ERC777: authorizing self as operator");
 
         if (_defaultOperators[operator]) {
@@ -553,7 +553,7 @@ contract PLAAS_FARMERS_TOKEN is owned, Context {
     /**
      * @dev See {IERC777-revokeOperator}.
      */
-    function revokeOperator(address operator) public {
+    function revokeOperator(address operator) external {
         require(operator != _msgSender(), "ERC777: revoking self as operator");
 
         if (_defaultOperators[operator]) {
@@ -568,7 +568,7 @@ contract PLAAS_FARMERS_TOKEN is owned, Context {
     /**
      * @dev See {IERC777-defaultOperators}.
      */
-    function defaultOperators() public view returns (address[] memory) {
+    function defaultOperators() external view returns (address[] memory) {
         return _defaultOperatorsArray;
     }
 
@@ -607,7 +607,7 @@ contract PLAAS_FARMERS_TOKEN is owned, Context {
      * not have allowance, and accounts with allowance may not be operators
      * themselves.
      */
-    function allowance(address holder, address spender) public view returns (uint256) {
+    function allowance(address holder, address spender) external view returns (uint256) {
         return _allowances[holder][spender];
     }
 
@@ -616,7 +616,7 @@ contract PLAAS_FARMERS_TOKEN is owned, Context {
      *
      * Note that accounts cannot have allowance issued by their operators.
      */
-    function approve(address spender, uint256 value) public returns (bool) {
+    function approve(address spender, uint256 value) external returns (bool) {
         address holder = _msgSender();
         _approve(holder, spender, value);
         return true;
@@ -631,7 +631,7 @@ contract PLAAS_FARMERS_TOKEN is owned, Context {
     *
     * Emits {Sent}, {IERC20-Transfer} and {IERC20-Approval} events.
     */
-    function transferFrom(address holder, address recipient, uint256 amount) public returns (bool) {
+    function transferFrom(address holder, address recipient, uint256 amount) external returns (bool) {
         require(recipient != address(0), "ERC777: transfer to the zero address");
         require(holder != address(0), "ERC777: transfer from the zero address");
 
@@ -786,7 +786,7 @@ contract PLAAS_FARMERS_TOKEN is owned, Context {
         * @param target Address to be frozen
         * @param freeze either to freeze it or not
         */
-    function freezeAccount(address target, bool freeze) onlyOwner public {
+    function freezeAccount(address target, bool freeze) onlyOwner external {
         frozenAccount[target] = freeze;
         emit  FrozenAccounts(target, freeze);
     }
@@ -797,7 +797,7 @@ contract PLAAS_FARMERS_TOKEN is owned, Context {
         * When safeguard is true, then all the non-owner functions will stop working.
         * When safeguard is false, then all the functions will resume working back again!
         */
-    function changeSafeguardStatus() onlyOwner public{
+    function changeSafeguardStatus() onlyOwner external{
         if (safeguard == false){
             safeguard = true;
         }
