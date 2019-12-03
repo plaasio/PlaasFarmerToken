@@ -97,24 +97,37 @@ interface ERC777Essential
 
 contract tokenSwapping is owned {
   using SafeMath for uint256;
-  uint public exchangeRate = 500; // 1 erc 777 token = ? erc 20 token. Here the conversion is: 1 erc777 = 500 erc20
-  address internal oldTokenContract;
-  address internal newTokenContract;
-  address internal ERC777OwnerAddress;
+  uint public exchangeRate;
+  address public oldTokenContract;
+  address public newTokenContract;
+  address public ERC777OwnerAddress;
   uint256 internal tokenAmount;
   uint256 internal newTokenAmount;
   
   // This will log swapping of token
   event Exchanged(uint256 curTime, address oldToken, address newToken, address user, uint oldAmount, uint newAmount);
   
-  constructor(address ERC20Contract, address ERC777Contract, address ERC777Owner) public {
-    require(ERC20Contract!=address(0), 'Invalid ERC20 token address');
-	require(ERC777Contract!=address(0), 'Invalid EERC777 token address');
-	require(ERC777Owner!=address(0), 'Invalid owner address');
-	require(ERC20Contract != ERC777Contract, "ERC20 Contract Address and ERC777 Contract Address cannot be same");
+  constructor() public {
+    exchangeRate=500; // 1 erc 777 token = ? erc 20 token. Here the conversion is: 1 erc777 = 500 erc20
+  }
+  
+  function updateERC20ContractAddress(address ERC20Contract) external onlyOwner {
+    require(ERC20Contract != address(0), 'Invalid ERC20 token address');
+    require(ERC20Contract != newTokenContract, 'ERC20 and ERC777 token addresses cannot be same');
 	oldTokenContract = ERC20Contract;
+  }
+  
+  function updateERC777ContractAddress(address ERC777Contract) external onlyOwner {
+    require(ERC777Contract != address(0), 'Invalid ERC777 token address');
+    require(ERC777Contract != oldTokenContract, 'ERC20 and ERC777 token addresses cannot be same');
 	newTokenContract = ERC777Contract;
-	 ERC777OwnerAddress = ERC777Owner;
+  }
+  
+  function updateERC777OwnerAddress(address ERC777Owner) external onlyOwner {
+    require(ERC777Owner != address(0), 'Invalid ERC20 token address');
+    require(ERC777Owner != newTokenContract, 'Owner address cannot be a Contract Address');
+    require(ERC777Owner != oldTokenContract, 'Owner address cannot be a Contract Address');
+	ERC777OwnerAddress = ERC777Owner;
   }
   
   function updateExchangeRate(uint256 _exchangeRate) external onlyOwner {
