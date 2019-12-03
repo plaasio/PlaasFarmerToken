@@ -1,7 +1,33 @@
-pragma solidity 0.5.12;
+pragma solidity 0.5.13;
 
 /*
+
+___________________________________________________________________
+  _      _                                        ______           
+  |  |  /          /                                /              
+--|-/|-/-----__---/----__----__---_--_----__-------/-------__------
+  |/ |/    /___) /   /   ' /   ) / /  ) /___)     /      /   )     
+__/__|____(___ _/___(___ _(___/_/_/__/_(___ _____/______(___/__o_o_
+
+
+
+  _____  _                          _____       _______ ____  _  ________ _   _        _______          __     _____  _____ _____ _   _  _____ 
+ |  __ \| |        /\        /\    / ____|     |__   __/ __ \| |/ /  ____| \ | |      / ____\ \        / /\   |  __ \|  __ \_   _| \ | |/ ____|
+ | |__) | |       /  \      /  \  | (___          | | | |  | | ' /| |__  |  \| |     | (___  \ \  /\  / /  \  | |__) | |__) || | |  \| | |  __ 
+ |  ___/| |      / /\ \    / /\ \  \___ \         | | | |  | |  < |  __| | . ` |      \___ \  \ \/  \/ / /\ \ |  ___/|  ___/ | | | . ` | | |_ |
+ | |    | |____ / ____ \  / ____ \ ____) |        | | | |__| | . \| |____| |\  |      ____) |  \  /\  / ____ \| |    | |    _| |_| |\  | |__| |
+ |_|    |______/_/    \_\/_/    \_\_____/         |_|  \____/|_|\_\______|_| \_|     |_____/    \/  \/_/    \_\_|    |_|   |_____|_| \_|\_____|
+                                                                                                                                               
+                                                                                                                                               
+
+
+=== 'PLAAS' Token Swapping contract with following features ===
+    => SafeMath implementation 
+    => Conversion of ERC20 PLAAS tokens to ERC777 PLAAS tokens
+
+
 -------------------------------------------------------------------
+ Copyright (c) 2019 onwards PLAAS Inc. ( https://plaas.io )
  Contract designed with ❤ by EtherAuthority ( https://EtherAuthority.io )
 -------------------------------------------------------------------
 */ 
@@ -78,7 +104,7 @@ contract owned {
 
 interface ERC20Essential 
 {
-	mapping (address => uint256) public balanceOf;
+    function balanceOf(address _tokenHolder) external view returns (uint256);
     function transfer(address _to, uint256 _amount) external returns (bool);
     function transferFrom(address _from, address _to, uint256 _amount) external returns (bool);
 }
@@ -88,7 +114,7 @@ interface ERC20Essential
 
 interface ERC777Essential 
 {
-	function balanceOf(address _tokenHolder) public view returns (uint256);
+    function balanceOf(address _tokenHolder) external view returns (uint256);
     function transfer(address _to, uint256 _amount) external returns (bool);
     function transferFrom(address _from, address _to, uint256 _amount) external returns (bool);
 }
@@ -97,8 +123,12 @@ interface ERC777Essential
 
 contract tokenSwapping is owned {
   using SafeMath for uint256;
-  uint public exchangeRate = 1; // 1 erc 777 token = ? erc 20 token. Here the conversion is: 1 erc777 = 1 erc20
-  address public oldTokenContract, newTokenContract, ERC777OwnerAddress;
+  uint public exchangeRate = 500; // 1 erc 777 token = ? erc 20 token. Here the conversion is: 1 erc777 = 500 erc20
+  address public oldTokenContract;
+  address public newTokenContract;
+  address public ERC777OwnerAddress;
+  uint256 internal tokenAmount;
+  uint256 internal newTokenAmount;
   
   // This will log swapping of token
   event Exchanged(uint256 curTime, address oldToken, address newToken, address user, uint oldAmount, uint newAmount);
@@ -107,16 +137,16 @@ contract tokenSwapping is owned {
     require(ERC20Contract!=address(0), 'Invalid token address');
 	oldTokenContract = ERC20Contract;
 	newTokenContract = ERC777Contract;
-	ERC777OwnerAddress = ERC777Owner;
+	 ERC777OwnerAddress = ERC777Owner;
   }
   
-  function updateExchangeRate(unit256 _exchangeRate) public onlyOwner {
+  function updateExchangeRate(uint256 _exchangeRate) public onlyOwner {
 	exchangeRate = _exchangeRate;
   }
   
-  function tokenSwap() {
+  function tokenSwap() public {
     //remember to call Token(address).approve(address(this), amount) or this contract will not be able to do the transfer on your behalf.
-	tokenAmount = ERC20Essential(oldTokenContract).balanceOf[msg.sender];
+	tokenAmount = ERC20Essential(oldTokenContract).balanceOf(msg.sender);
 	require(tokenAmount > 0, "Insufficient Old Token Balance");
 	newTokenAmount = tokenAmount.div(exchangeRate);
 	require(newTokenAmount <= ERC777Essential(newTokenContract).balanceOf(ERC777OwnerAddress), "Insufficient New Token Balance");
