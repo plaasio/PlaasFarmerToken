@@ -111,6 +111,7 @@ contract tokenSwapping is owned {
     require(ERC20Contract!=address(0), 'Invalid ERC20 token address');
 	require(ERC777Contract!=address(0), 'Invalid EERC777 token address');
 	require(ERC777Owner!=address(0), 'Invalid owner address');
+	require(ERC20Contract != ERC777Contract, "ERC20 Contract Address and ERC777 Contract Address cannot be same");
 	oldTokenContract = ERC20Contract;
 	newTokenContract = ERC777Contract;
 	 ERC777OwnerAddress = ERC777Owner;
